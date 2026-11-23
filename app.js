@@ -296,13 +296,29 @@ function viewToday() {
   return h;
 }
 
+function pickupRows(f) {
+  var today = localToday(), rows = [];
+  (REP ? REP.entries : []).forEach(function (r, i) {
+    var ok = f === 'ready' ? (r.status !== 'Unpaid' && !r.claimed) : !r.claimed;
+    if (ok) { var c = {}; for (var k in r) c[k] = r[k]; c._i = i; c.days = r.dateIn ? Math.round((new Date(today + 'T00:00:00Z') - new Date(r.dateIn + 'T00:00:00Z')) / 86400000) : 0; rows.push(c); }
+  });
+  rows.sort(function (a, b) { return a.dateIn < b.dateIn ? -1 : (a.dateIn > b.dateIn ? 1 : a._i - b._i); });
+  return rows;
+}
 function viewUnpaid() {
   var u = S.unpaid; if (!u) return '';
-  var q = S.q.toLowerCase();
-  var rows = u.rows.filter(function (r) { return !q || r.name.toLowerCase().indexOf(q) >= 0; });
-  var h = '<input class="search" id="q" placeholder="Search name" value="' + esc(S.q) + '">' +
-    '<div class="strip"><div>Unpaid orders: <b>' + u.rows.length + '</b></div><div>Total: <b>' + peso(u.total) + '</b></div></div>';
-  h += rows.length ? rows.map(function (r) { return card(r, true); }).join('') : '<div class="empty">Nothing unpaid.</div>';
+  var f = S.uf || 'unpaid', q = S.q.toLowerCase();
+  var base = f === 'unpaid' ? u.rows : pickupRows(f);
+  var rows = base.filter(function (r) { return !q || r.name.toLowerCase().indexOf(q) >= 0; });
+  var total = 0; base.forEach(function (r) { total += Number(r.amount) || 0; });
+  var tabs = [['unpaid', 'Unpaid'], ['unclaimed', 'Not picked up'], ['ready', 'Paid, waiting']];
+  var h = '<div class="chips" style="margin:0 0 8px">' + tabs.map(function (x) {
+    return '<button data-uf="' + x[0] + '" style="' + (f === x[0] ? 'background:#1f7a50;color:#fff;border:1px solid #1f7a50;font-weight:bold' : '') + '">' + x[1] + '</button>';
+  }).join('') + '</div>' +
+    '<input class="search" id="q" placeholder="Search name" value="' + esc(S.q) + '">' +
+    '<div class="strip"><div>' + (f === 'unpaid' ? 'Unpaid orders' : (f === 'ready' ? 'Paid, waiting for pickup' : 'Not picked up')) + ': <b>' + base.length + '</b></div><div>Total: <b>' + peso(total) + '</b></div></div>';
+  h += rows.length ? rows.map(function (r) { return card(r, true); }).join('') : '<div class="empty">' + (f === 'unpaid' ? 'Nothing unpaid.' : 'Nothing here.') + '</div>';
+  if (f !== 'unpaid') h += '<div class="meta" style="margin-top:8px">Shows the last 45 days and all unpaid orders.</div>';
   return h;
 }
 
@@ -458,6 +474,7 @@ document.addEventListener('click', function (ev) {
       .then(function (res) { busy(false); closeModal(); toast('Expense saved'); if (res && res.day) { S.day = res.day; S.date = res.day.date; render(); } else { refresh(); } }).catch(fail);
   }
   if (t.hasAttribute('data-eitem')) { $('x_item').value = S.init.expenseItems[Number(t.getAttribute('data-eitem'))]; return $('x_amt').focus(); }
+  if (t.hasAttribute('data-uf')) { S.uf = t.getAttribute('data-uf'); $('view').innerHTML = viewUnpaid(); return; }
   if (t.hasAttribute('data-st') && S.form) { S.form.status = t.getAttribute('data-st'); return renderSeg(); } if (t.hasAttribute('data-svc') && S.form) { var sn = S.init.services[Number(t.getAttribute('data-svc'))], sp = ((S.init.prices || {}).svc || {})[sn], L0 = S.form.lines; if (!S.form.tapped && !(Number(L0[0].a) > 0)) { L0[0].d = sn; L0[0].a = sp ? sp : ''; } else { L0.push({ d: sn, a: sp ? sp : '' }); } S.form.tapped = true; renderLines(); if ($('f_load') && $('f_load').value === '') $('f_load').value = '1'; return; }
   if (t.hasAttribute('data-add') && S.form) {
     var i = Number(t.getAttribute('data-add')), ap = i >= 0 ? ((S.init.prices || {}).add || {})[S.init.addOns[i]] : 0;
@@ -575,7 +592,7 @@ function shareReceipt() {
 }
 /* ---------- login (name + PIN) ---------- */
 function showLogin(msg) {
-  S.tok = ''; S.init = null; S.day = null; S.unpaid = null; S.cash = null; S.form = null; S.audit = null; S.people = null; S.q = '';
+  S.tok = ''; S.init = null; S.day = null; S.unpaid = null; S.cash = null; S.form = null; S.audit = null; S.people = null; S.q = ''; S.uf = 'unpaid';
   closeModal(); ['hdr', 'nav', 'fab'].forEach(function (i) { $(i).classList.add('hidden'); });
   $('view').innerHTML = '<div class="receipt" style="margin-top:20px"><div class="r-title">WASHSTUDIO</div><div class="r-sub">LOG IN</div><div class="dashx"></div>' +
     '<label>Username<input id="l_user" data-t="text" type="text" maxlength="20" autocapitalize="none" autocomplete="off"></label>' +
