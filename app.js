@@ -458,7 +458,7 @@ document.addEventListener('click', function (ev) {
       .then(function (res) { busy(false); closeModal(); toast('Expense saved'); if (res && res.day) { S.day = res.day; S.date = res.day.date; render(); } else { refresh(); } }).catch(fail);
   }
   if (t.hasAttribute('data-eitem')) { $('x_item').value = S.init.expenseItems[Number(t.getAttribute('data-eitem'))]; return $('x_amt').focus(); }
-  if (t.hasAttribute('data-st') && S.form) { S.form.status = t.getAttribute('data-st'); return renderSeg(); } if (t.hasAttribute('data-svc') && S.form) { var sn = S.init.services[Number(t.getAttribute('data-svc'))], sp = ((S.init.prices || {}).svc || {})[sn], L0 = S.form.lines; if (!(Number(L0[0].a) > 0)) { L0[0].d = sn; L0[0].a = sp ? sp : ''; } else { L0.push({ d: sn, a: sp ? sp : '' }); } renderLines(); if ($('f_load') && $('f_load').value === '') $('f_load').value = '1'; return; }
+  if (t.hasAttribute('data-st') && S.form) { S.form.status = t.getAttribute('data-st'); return renderSeg(); } if (t.hasAttribute('data-svc') && S.form) { var sn = S.init.services[Number(t.getAttribute('data-svc'))], sp = ((S.init.prices || {}).svc || {})[sn], L0 = S.form.lines; if (!S.form.tapped && !(Number(L0[0].a) > 0)) { L0[0].d = sn; L0[0].a = sp ? sp : ''; } else { L0.push({ d: sn, a: sp ? sp : '' }); } S.form.tapped = true; renderLines(); if ($('f_load') && $('f_load').value === '') $('f_load').value = '1'; return; }
   if (t.hasAttribute('data-add') && S.form) {
     var i = Number(t.getAttribute('data-add')), ap = i >= 0 ? ((S.init.prices || {}).add || {})[S.init.addOns[i]] : 0;
     S.form.lines.push({ d: i >= 0 ? S.init.addOns[i] : '', a: ap ? ap : '' });
