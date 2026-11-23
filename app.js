@@ -481,7 +481,7 @@ document.addEventListener('click', function (ev) {
   if (t.id === 'dlabel') { var p = $('dpick'); p.value = S.date; p.classList.remove('hidden'); if (p.showPicker) { try { p.showPicker(); } catch (e) { } } p.focus(); return; }
   if (t.id === 'fab') { return S.tab === 'expenses' ? openExpense() : openEntry(null); }
   if (t.hasAttribute('data-tab')) { S.tab = t.getAttribute('data-tab'); if (S.tab === 'today') { S.date = S.today; } return refresh(); } if (t.hasAttribute('data-go')) { S.tab = t.getAttribute('data-go'); return refresh(); } if (t.id === 'logout') return doLogout(false); if (t.hasAttribute('data-who')) return pickWho(t.getAttribute('data-who')); if (t.id === 'l_go') return doLogin(); if (t.id === 'l_back') return showLogin(); if (t.id === 'l_first') return doFirstPin(); if (t.hasAttribute('data-af')) { S.af = t.getAttribute('data-af'); $('view').innerHTML = viewAudit(); return; } if (t.hasAttribute('data-pp')) return peopleAction(t.getAttribute('data-pp'), t.getAttribute('data-n')); if (t.id === 'pp_save') return savePinModal(); if (t.id === 'pp_cancel') return closeModal();
-  if (t.id === 'f_cancel' || t.id === 'x_cancel' || t.id === 'rc_done') return closeModal(); if (t.id === 'rc_print') return window.print(); if (t.id === 'rc_share') return shareReceipt(); if (t.id === 'c_save') return saveClose();
+  if (t.id === 'f_cancel' || t.id === 'x_cancel' || t.id === 'rc_done') return closeModal(); if (t.id === 'rc_print') return window.print(); if (t.id === 'rc_share') return shareReceipt(); if (t.id === 'c_save') return saveClose(); if (t.id === 'c_share') return shareClose();
   if (t.id === 'f_save') return saveForm();
   if (t.id === 'f_del') {
     if (!confirm('Delete this entry for good?')) return;
@@ -545,18 +545,36 @@ document.addEventListener('change', function (ev) { if (ev.target.id === 'f_svc'
 function viewClose() {
   var c = S.cash; if (!c) return '';
   var sv = c.saved;
-  return '<div class="receipt" style="margin:0"><div class="r-title">END OF DAY</div><div class="r-sub">CASH COUNT</div><div class="dashx"></div>' +
+  return '<div class="receipt" style="margin:0"><div class="r-title">WASHSTUDIO</div><div class="r-sub">END OF DAY CASH REPORT</div><div class="r-sub" style="font-weight:bold">' + esc(longDate(S.date)) + '</div><div class="dashx"></div>' +
     '<div class="rc-row"><span>Cash received (Paid)</span><b>' + peso(c.cashIn) + '</b></div>' +
     '<div class="rc-row"><span>Expenses paid</span><b>- ' + peso(c.expenses) + '</b></div>' +
     '<div class="rc-row meta"><span>GCash received (not in the drawer)</span><span>' + peso(c.gcash) + '</span></div>' +
-    '<div class="dashx"></div>' +
+    '<div class="dashx"></div>' + cashDetail(c) + '<div class="dashx"></div>' +
     '<label>Cash already in the drawer at the start of the day (optional)<input id="c_open" data-t="num" inputmode="decimal" placeholder="0" value="' + esc(sv ? num(sv.opening) : '') + '"></label>' +
     '<div class="rc-row rc-big"><span>Should be in the drawer</span><span id="c_exp">₱0</span></div>' +
     '<label>Cash you counted<input id="c_cnt" data-t="num" inputmode="decimal" placeholder="0" value="' + esc(sv ? num(sv.counted) : '') + '"></label>' +
     '<div class="diff" id="c_diff">Type the cash you counted</div>' +
     '<label style="margin-top:10px">Note (optional)<input id="c_note" data-t="text" autocomplete="off" value="' + esc(sv ? sv.note : '') + '"></label>' +
-    '<div class="actions"><button class="primary" id="c_save">Save count</button></div>' +
+    '<div class="actions"><button class="primary" id="c_save">Save count</button><button id="c_share">Share report</button></div>' +
     (sv ? '<div class="meta" style="margin-top:8px">A count for this day was already saved by ' + esc(sv.by) + '. Saving again replaces it.</div>' : '') + '</div>';
+}
+function cashDetail(c) {
+  function rows(a, withFrom) { return a.length ? a.map(function (r) { return '<div class="rc-row"><span>' + esc(r.name || r.item) + (withFrom && r.dateIn && r.dateIn !== S.date ? ' <span class="meta">(dropped off ' + esc(longDate(r.dateIn).replace(/^\w+, /, '').replace(/, \d{4}$/, '')) + ')</span>' : '') + '</span><b>' + peso(r.amount) + '</b></div>'; }).join('') : '<div class="meta">None</div>'; }
+  var cr = (c.cashRows || []).slice().sort(function (a, b) { var x = a.dateIn === S.date ? 0 : 1, y = b.dateIn === S.date ? 0 : 1; return x - y || (a.dateIn < b.dateIn ? -1 : a.dateIn > b.dateIn ? 1 : 0); });
+  var same = 0, early = 0, ns = 0, ne = 0; cr.forEach(function (r) { if (r.dateIn === S.date) { same += r.amount; ns++; } else { early += r.amount; ne++; } });
+  return '<div class="r-sub">CASH RECEIVED, ONE BY ONE (' + cr.length + ')</div>' + rows(cr, true) +
+    '<div class="rc-row meta"><span>Orders dropped off today (' + ns + ')</span><span>' + peso(same) + '</span></div>' +
+    '<div class="rc-row meta"><span>Unpaid orders from earlier days paid today (' + ne + ')</span><span>' + peso(early) + '</span></div>' +
+    '<div class="dashx"></div><div class="r-sub">EXPENSES PAID (' + (c.expRows || []).length + ')</div>' + rows(c.expRows || [], false) +
+    '<div class="dashx"></div><div class="r-sub">GCASH RECEIVED (' + (c.gcashRows || []).length + ')</div>' + rows(c.gcashRows || [], true);
+}
+function shareClose() {
+  var c = S.cash; if (!c) return;
+  function L(a) { return a.length ? a.map(function (r) { return '  ' + (r.name || r.item) + ' - ' + peso(r.amount) + (r.dateIn && r.dateIn !== S.date ? ' (dropped off ' + r.dateIn + ')' : ''); }).join('\n') : '  none'; }
+  var open = Number($('c_open').value) || 0, exp = Math.round((open + c.cashIn - c.expenses) * 100) / 100, raw = $('c_cnt').value;
+  var t = 'WASHSTUDIO - END OF DAY CASH REPORT\n' + longDate(S.date) + '\n\nCASH RECEIVED (' + c.cashRows.length + '): ' + peso(c.cashIn) + '\n' + L(c.cashRows) + '\n\nEXPENSES (' + c.expRows.length + '): ' + peso(c.expenses) + '\n' + L(c.expRows) + '\n\nGCASH (' + c.gcashRows.length + '): ' + peso(c.gcash) + '\n' + L(c.gcashRows) + '\n\nShould be in the drawer: ' + peso(exp) + (raw === '' ? '' : '\nCounted: ' + peso(Number(raw)) + '\nDifference: ' + peso(Math.round((Number(raw) - exp) * 100) / 100));
+  if (navigator.share) { navigator.share({ title: 'WashStudio end of day', text: t }).catch(function () { }); return; }
+  if (navigator.clipboard) { navigator.clipboard.writeText(t).then(function () { toast('Report copied'); }); } else toast('Take a screenshot instead.');
 }
 function updateClose() {
   var c = S.cash; if (!c || !$('c_open')) return;
