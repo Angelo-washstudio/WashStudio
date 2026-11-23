@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#1f3864">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="WashStudio">
+<title>WashStudio</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f2f4f8;color:#1b1f2a;padding-bottom:150px}
+header{position:sticky;top:0;z-index:5;background:#1f3864;color:#fff;padding:10px 12px}
+.brand{font-weight:bold;font-size:15px;letter-spacing:1px;display:flex;justify-content:space-between;align-items:center}
+.brand small{font-weight:normal;font-size:12px;opacity:.85}
+.datebar{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+.datebar button{background:#2f4d85;border:0;color:#fff;font-size:24px;width:46px;height:40px;border-radius:8px}
+.datebar .lbl{flex:1;text-align:center;font-size:16px;font-weight:bold;padding:0 6px}
+.datebar .sub{font-size:11px;font-weight:normal;opacity:.85;display:block}
+.hidden{display:none!important}
+main{padding:10px}
+.tiles{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px}
+.tile{background:#fff;border-radius:10px;padding:8px 4px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.tile b{display:block;font-size:17px}
+.tile span{font-size:11px;color:#5b6475}
+.strip{background:#fff;border-radius:10px;padding:8px 10px;margin:8px 0;font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px 12px;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.strip div{white-space:nowrap}
+h3{margin:14px 2px 6px;font-size:14px;color:#3a4458}
+.card{background:#fff;border-radius:10px;padding:10px;margin-bottom:8px;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.row1{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.nm{font-weight:bold;font-size:16px}
+.meta{font-size:12px;color:#5b6475;margin-top:2px}
+.amt{font-weight:bold;font-size:16px;white-space:nowrap}
+.badge{display:inline-block;font-size:11px;font-weight:bold;padding:2px 8px;border-radius:10px;margin-left:6px;vertical-align:middle}
+.b-Paid{background:#d9f2e0;color:#16703a}
+.b-GCash{background:#dbe9ff;color:#1a4fa3}
+.b-Unpaid{background:#fde0e0;color:#a31a1a}
+.b-Claimed{background:#eee;color:#555}
+.acts{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.acts button{flex:1;min-width:72px;padding:13px 6px;border-radius:8px;border:1px solid #c9d0de;background:#fff;font-size:13px}
+.acts .pay{background:#e8f6ec;border-color:#9fd3ae;color:#16703a;font-weight:bold}
+.acts .gc{background:#e5efff;border-color:#a9c4f2;color:#1a4fa3;font-weight:bold}
+.empty{text-align:center;color:#7a8396;padding:24px 8px;font-size:14px}
+nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #d5dae5;display:flex;z-index:6;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;border:0;background:none;padding:16px 2px;font-size:13px;color:#5b6475}
+nav button.on{color:#1f3864;font-weight:bold;border-top:3px solid #1f3864;padding-top:13px}
+.fab{position:fixed;right:14px;bottom:calc(68px + env(safe-area-inset-bottom));z-index:6;background:#1f7a4d;color:#fff;border:0;border-radius:28px;padding:15px 22px;font-size:16px;font-weight:bold;box-shadow:0 3px 8px rgba(0,0,0,.3)}
+.search{width:100%;padding:11px;border:1px solid #c9d0de;border-radius:8px;font-size:15px;margin-bottom:8px}
+.big{background:#fff;border-radius:10px;padding:6px 12px;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.big div{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #eef0f5;font-size:15px}
+.big div:last-child{border-bottom:0}
+.big .net{font-weight:bold;font-size:17px}
+/* receipt form */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:20;overflow:auto;padding:12px}
+.receipt{background:#fffef8;max-width:440px;margin:0 auto;padding:16px 14px;border-radius:4px;font-family:"Courier New",Courier,monospace;box-shadow:0 4px 14px rgba(0,0,0,.4)}
+.r-title{text-align:center;font-weight:bold;font-size:20px;letter-spacing:3px}
+.r-sub{text-align:center;font-size:13px;margin-bottom:4px}
+.dash{border-top:2px dashed #999;margin:10px 0}
+.receipt label{display:block;font-size:12px;margin-bottom:8px;color:#444}
+.receipt input[type=text],.receipt input[type=date],.receipt input:not([type]),.receipt input[inputmode]{width:100%;padding:10px 8px;border:1px solid #bbb;background:#fff;font-size:16px;font-family:inherit;border-radius:4px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.line{display:grid;grid-template-columns:1fr 92px 30px;gap:6px;margin-bottom:6px;align-items:center}
+.line input{width:100%;padding:10px 6px;border:1px solid #bbb;font-size:16px;font-family:inherit;border-radius:4px;background:#fff} .line select{width:100%;padding:10px 4px;border:1px solid #bbb;font-size:14px;font-family:inherit;border-radius:4px;background:#fff}
+.line .amtin{text-align:right}
+.line button{border:0;background:#f3d6d6;color:#a31a1a;font-size:16px;border-radius:4px;height:38px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.chips button{border:1px dashed #777;background:#fff;padding:8px 10px;font-size:13px;font-family:inherit;border-radius:16px}
+.total{display:flex;justify-content:space-between;font-size:24px;font-weight:bold}
+.seg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.seg button{padding:12px 4px;border:2px solid #bbb;background:#fff;font-size:15px;font-family:inherit;border-radius:6px;font-weight:bold}
+.seg .s-Unpaid.on{background:#fde0e0;border-color:#c33;color:#a31a1a}
+.seg .s-Paid.on{background:#d9f2e0;border-color:#2a9a56;color:#16703a}
+.seg .s-GCash.on{background:#dbe9ff;border-color:#3a6fd0;color:#1a4fa3}
+.chk{display:flex!important;align-items:center;gap:8px;font-size:14px!important;margin-top:10px}
+.chk input{width:22px;height:22px}
+.actions{display:flex;gap:8px;margin-top:14px}
+.actions button{flex:1;padding:14px;font-size:16px;border-radius:6px;border:0;font-family:inherit;font-weight:bold}
+.primary{background:#1f7a4d;color:#fff}
+.ghost{background:#e3e6ee;color:#333}
+.danger{background:#fde0e0;color:#a31a1a;margin-top:8px;width:100%;padding:11px;border:0;border-radius:6px;font-family:inherit}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:130px;background:#222;color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;z-index:40;max-width:90%;text-align:center}
+#busy{position:fixed;inset:0;background:rgba(255,255,255,.55);z-index:30;display:flex;align-items:center;justify-content:center;font-weight:bold;color:#1f3864}
+.fatal{margin:40px 16px;padding:18px;background:#fff;border-radius:10px;font-size:15px;line-height:1.5}.qk{margin:2px 0 6px}.qk .chips{display:grid;grid-template-columns:1fr 1fr;gap:6px}.qk .chips button{border:1px solid #1f3864;background:#eef2fb;color:#1f3864;font-weight:bold;padding:9px 6px;font-size:13px;border-radius:8px;line-height:1.2;min-height:46px}.qk .chips button small{font-weight:normal;color:#444}.chips button.pr{border-style:solid;border-color:#9aa5bd}.rc-row{display:flex;justify-content:space-between;gap:10px;font-size:15px;margin:4px 0}.rc-big{font-size:20px;font-weight:bold}.rc-mid{text-align:center;font-size:13px;color:#444}.diff{font-size:22px;font-weight:bold;text-align:center;padding:10px;border-radius:6px;margin-top:8px;background:#eee}.diff.ok{background:#d9f2e0;color:#16703a}.diff.bad{background:#fde0e0;color:#a31a1a}.dashx{border-top:2px dashed #888;margin:10px 0}#logout{background:#2f4d85;color:#fff;border:0;border-radius:6px;padding:5px 9px;font-size:12px;margin-left:6px}.who{display:grid;grid-template-columns:1fr 1fr;gap:8px}.who button{padding:18px 6px;font-size:17px;font-weight:bold;border:2px solid #1f3864;background:#eef2fb;color:#1f3864;border-radius:10px;font-family:inherit}.pinin{text-align:center;letter-spacing:10px;font-size:26px!important}.err{color:#a31a1a;font-size:14px;min-height:20px;margin-top:6px;text-align:center}.au{border-left:5px solid #c9d0de}.au.r{border-left-color:#c33;background:#fff6f6}.au.y{border-left-color:#e0a800}.au.g{border-left-color:#2a9a56}.fl{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.fl button{border:1px solid #9aa5bd;background:#fff;border-radius:16px;padding:8px 12px;font-size:13px}.fl button.on{background:#1f3864;color:#fff}.row2{display:flex;justify-content:space-between;gap:8px}.btnrow{display:flex;gap:8px;margin:10px 0}.btnrow button{flex:1;padding:13px 6px;border-radius:8px;border:1px solid #1f3864;background:#fff;color:#1f3864;font-weight:bold}#netbar{font-size:13px;padding:7px 10px;margin:8px -12px -10px;text-align:center;line-height:1.35}#netbar button{margin-left:8px;border:0;border-radius:5px;padding:4px 9px;font-size:12px;font-weight:bold}.nb-off{background:#e0a800;color:#222}.nb-sync{background:#2a9a56;color:#fff}.nb-bad{background:#c33;color:#fff}@media print{body>*:not(#modal){display:none!important}#modal{position:static!important;background:#fff!important}.noprint{display:none!important}.receipt{box-shadow:none!important;margin:0 auto!important}}
+</style>
+</head>
+<body>
+<header id="hdr" class="hidden">
+  <div class="brand"><span>WASHSTUDIO</span><small><span id="who"></span> <button id="logout">Log out</button></small></div>
+  <div class="datebar" id="datebar">
+    <button id="prev" aria-label="Previous day">&#8249;</button>
+    <div class="lbl" id="dlabel" style="cursor:pointer"><span id="dtext"></span><span class="sub" id="dsub">tap to pick a date</span></div>
+    <button id="next" aria-label="Next day">&#8250;</button>
+  </div>
+  <input type="date" id="dpick" class="hidden">
+  <div id="netbar" class="hidden"></div>
+</header>
+<main id="view"><div class="empty">Loading...</div></main>
+<button class="fab hidden" id="fab">+ Add customer</button>
+<nav id="nav" class="hidden">
+  <button data-tab="today" class="on">Today</button>
+  <button data-tab="unpaid">Unpaid</button>
+  <button data-tab="expenses">Expenses</button><button data-tab="close">Close day</button>
+  <button data-tab="month">Month</button>
+</nav>
+<datalist id="names"></datalist>
+<div id="modal" class="modal hidden"></div>
+<div id="busy" class="hidden">Please wait...</div>
+<div id="toast" class="hidden"></div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
