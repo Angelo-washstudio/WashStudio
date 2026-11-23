@@ -17,6 +17,26 @@ function saveQ(q) { if (!lsSet('ws_q', q)) throw new Error('This phone is out of
 function localToday() { return new Date().toLocaleDateString('en-CA', { timeZone: TZ_ }); }
 function localTime() { return new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: TZ_ }).replace(/[\u202f\u00a0]/g, ' '); }
 function newCid() { var a = new Uint8Array(10), s = ''; (window.crypto || window.msCrypto).getRandomValues(a); for (var i = 0; i < 10; i++) s += 'abcdefghijklmnopqrstuvwxyz0123456789'.charAt(a[i] % 36); return s; }
+/* short, plain messages for staff. Anything technical becomes "tell the owner". */
+function friendly(m) {
+  m = String(m == null ? '' : m).replace(/^Error:\s*/, '').replace(/^(NO_PIN|SESSION_EXPIRED):\s*/, '');
+  var code = NET.code ? ' (' + NET.code + ')' : '';
+  if (/Wi-Fi is on, but the app cannot reach|Cannot reach the spreadsheet|got a web page/i.test(m)) return 'Cannot connect to the shop sheet. Tell the owner.' + code;
+  if (/not connected to the spreadsheet yet/i.test(m)) return 'The app is not set up yet. Tell the owner.';
+  if (/No Wi-Fi, and this phone has not seen you/i.test(m)) return 'Turn on Wi-Fi to log in for the first time.';
+  if (/Deleting needs Wi-Fi/i.test(m)) return 'Deleting needs Wi-Fi. Ask the owner.';
+  if (/Too many wrong tries/i.test(m)) return 'Too many wrong tries. Wait 10 minutes or ask the owner.';
+  if (/Only the owner/i.test(m)) return 'Only the owner can do this. Ask your owner.';
+  if (/Ask the owner to set your PIN|No PIN is set/i.test(m)) return 'No PIN yet. Ask your owner to set it.';
+  if (/PIN is already set/i.test(m)) return 'You already have a PIN. Ask your owner to reset it.';
+  if (/already marked paid/i.test(m)) return 'Already marked paid.';
+  if (/not found/i.test(m)) return 'Not found. Close the app, open it again, and retry.';
+  if (/out of storage/i.test(m)) return 'Phone storage is full. Free some space.';
+  if (/Wrong setup code/i.test(m)) return 'Wrong setup code. Ask the owner.';
+  if (/not in the Staff tab/i.test(m)) return 'You are not set up yet. Ask your owner.';
+  if (/Unknown action|Exception|TypeError|ReferenceError|undefined|is not a function|script\.google/i.test(m) || m.length > 140) return 'Something went wrong. Tell the owner.' + code;
+  return m || 'Something went wrong. Tell the owner.';
+}
 function offErr(m) { NET.online = false; var e = new Error(m); e.offline = true; return e; }
 
 /* one request to the spreadsheet. Resolves with the answer, or rejects (e.offline = true when there is no connection) */
@@ -25,8 +45,8 @@ function netCall(fn, args, ms) {
   var ctl = ('AbortController' in window) ? new AbortController() : null, to = ctl ? setTimeout(function () { ctl.abort(); }, ms || 30000) : 0;
   return fetch(window.WS_API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ fn: fn, tok: S.tok || '', args: args || [] }), signal: ctl ? ctl.signal : undefined, cache: 'no-store' })
     .then(function (r) { clearTimeout(to); return r.text(); })
-    .then(function (t) { var j; try { j = JSON.parse(t); } catch (e) { NET.why = 'got a web page instead of an answer: ' + String(t).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').slice(0, 80); throw offErr('Cannot reach the spreadsheet right now.'); } NET.online = true; if (!j.ok) throw new Error(j.e || 'Something went wrong.'); return j.r; },
-      function (er) { clearTimeout(to); NET.why = 'request blocked or failed (' + String((er && er.message) || er).slice(0, 60) + ')'; throw offErr('No Wi-Fi.'); });
+    .then(function (t) { var j; try { j = JSON.parse(t); } catch (e) { NET.code = 'C2'; NET.why = 'got a web page instead of an answer: ' + String(t).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').slice(0, 80); throw offErr('Cannot reach the spreadsheet right now.'); } NET.online = true; NET.code = ''; if (!j.ok) throw new Error(j.e || 'Something went wrong.'); return j.r; },
+      function (er) { clearTimeout(to); NET.code = 'C1'; NET.why = 'request blocked or failed (' + String((er && er.message) || er).slice(0, 60) + ')'; throw offErr('No Wi-Fi.'); });
 }
 function run(fn) { return netCall(fn, Array.prototype.slice.call(arguments, 1)); }
 
@@ -151,7 +171,7 @@ function syncPinGo() {
 }
 function updateNetBar() {
   var b = $('netbar'); if (!b) return; var n = loadQ().length, bad = lsGet('ws_bad', []);
-  if (bad.length) { b.className = 'nb-bad'; b.innerHTML = '&#9888; ' + bad.length + ' saved item' + (bad.length > 1 ? 's were' : ' was') + ' NOT added: ' + esc(bad.map(function (x) { return (x.name || 'item') + (x.amount ? ' (' + peso(x.amount) + ')' : '') + ' - ' + x.why; }).join('; ')) + ' <button id="bad_ok" style="background:#fff;color:#a31a1a">OK</button>'; return; }
+  if (bad.length) { b.className = 'nb-bad'; b.innerHTML = '&#9888; ' + bad.length + ' saved item' + (bad.length > 1 ? 's were' : ' was') + ' NOT added: ' + esc(bad.map(function (x) { return (x.name || 'item') + (x.amount ? ' (' + peso(x.amount) + ')' : '') + ' - ' + friendly(x.why); }).join('; ')) + ' <button id="bad_ok" style="background:#fff;color:#a31a1a">OK</button>'; return; }
   if (!NET.online) { b.className = 'nb-off'; b.textContent = 'No Wi-Fi. ' + (n ? n + ' saved on this phone, will send when Wi-Fi is back.' : 'You can keep working.'); return; }
   if (n) { b.className = 'nb-sync'; b.textContent = 'Sending ' + n + ' saved...'; return; }
   b.className = 'hidden'; b.textContent = '';
@@ -172,7 +192,7 @@ function storeVerifier(name, user, pin) {
 }
 function offlineLogin(name, pin) {
   var ver = lsGet('ws_ver', {}), k = String(name).toLowerCase(), v = ver[k], lock = lsGet('ws_lock', {}), L = lock[k] || { n: 0, until: 0 };
-  if (!v || !REP || !REP.cfg) return Promise.reject(offErr(navigator.onLine ? 'Wi-Fi is on, but the app cannot reach the spreadsheet. Owner: in Apps Script set the deployment to Execute as Me / Anyone. Detail: ' + (NET.why || 'no answer') : 'No Wi-Fi, and this phone has not seen you log in yet. Log in once with Wi-Fi.'));
+  if (!v || !REP || !REP.cfg) return Promise.reject(offErr(navigator.onLine ? 'Wi-Fi is on, but the app cannot reach the spreadsheet.' : 'No Wi-Fi, and this phone has not seen you log in yet. Log in once with Wi-Fi.'));
   if (L.until > Date.now()) return Promise.reject(new Error('Too many wrong tries. Try again in a few minutes.'));
   return pbkdf(pin, v.salt).then(function (h) {
     if (h !== v.hash) { L.n++; if (L.n >= 5) { L.until = Date.now() + 600000; L.n = 0; } lock[k] = L; lsSet('ws_lock', lock); throw new Error('Wrong username or PIN.'); }
@@ -194,7 +214,7 @@ function toast(msg) {
   var t = $('toast'); t.textContent = msg; t.classList.remove('hidden');
   clearTimeout(toast._t); toast._t = setTimeout(function () { t.classList.add('hidden'); }, 3200);
 }
-function fail(e) { busy(false); if (e && /SESSION_EXPIRED/.test(String(e.message || ''))) { S.tok = ''; showLogin('Please log in again.'); return; } toast((e && e.message) ? e.message.replace(/^Error:\s*/, '') : 'Something went wrong. Check the Wi-Fi and try again.'); }
+function fail(e) { busy(false); if (e && /SESSION_EXPIRED/.test(String(e.message || ''))) { S.tok = ''; showLogin('Please log in again.'); return; } toast(friendly(e && e.message)); }
 
 function addDays(s, n) { var d = new Date(s + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
 function longDate(s) { return new Date(s + 'T00:00:00Z').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }); }
@@ -611,7 +631,7 @@ function showFirst(name) {
   if ($('l_pin')) $('l_pin').focus();
 
 }
-function loginErr(e) { busy(false); var m = String((e && e.message) || 'Something went wrong. Check the Wi-Fi.').replace(/^Error:\s*/, '').replace(/^NO_PIN:\s*/, ''); if ($('l_err')) $('l_err').textContent = m; if ($('l_pin')) { $('l_pin').value = ''; $('l_pin').focus(); } }
+function loginErr(e) { busy(false); var m = friendly(e && e.message); if ($('l_err')) $('l_err').textContent = m; if ($('l_pin')) { $('l_pin').value = ''; $('l_pin').focus(); } }
 function doLogin() {
   var u = cleanText($('l_user').value).trim(), pin = $('l_pin').value; if (!u) { $('l_err').textContent = 'Type your username.'; return; } if (pin.length < 4) { $('l_err').textContent = 'Type your PIN.'; return; }
   S.pick = { name: u }; busy(true); wsLogin(u, pin).then(function (r) { busy(false); start(r.init); }).catch(function (e) { if (/NO_PIN/.test(String((e && e.message) || ''))) { busy(false); showFirst(u); } else loginErr(e); });
@@ -624,7 +644,7 @@ function doLogout(auto) {
   var done = function () { showLogin(auto ? 'Logged out because the app was not used for 5 minutes.' : 'Logged out.'); };
   run('logout').then(done, done);
 }
-setInterval(function () { if (S.init && Date.now() - S.idleAt > 300000) { doLogout(true); } }, 15000);
+setInterval(function () { if (S.init && Date.now() - S.idleAt > 3600000) { doLogout(true); } }, 15000);
 ['click', 'touchstart', 'keydown', 'input'].forEach(function (n) { document.addEventListener(n, function () { S.idleAt = Date.now(); }, true); });
 document.addEventListener('keydown', function (ev) { if (ev.key !== 'Enter') return; if (ev.target.id === 'l_user') { $('l_pin').focus(); } else if (ev.target.id === 'l_pin') { if ($('l_go')) doLogin(); else if ($('l_first')) $('l_pin2').focus(); } });
 
