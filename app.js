@@ -25,8 +25,8 @@ function netCall(fn, args, ms) {
   var ctl = ('AbortController' in window) ? new AbortController() : null, to = ctl ? setTimeout(function () { ctl.abort(); }, ms || 30000) : 0;
   return fetch(window.WS_API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ fn: fn, tok: S.tok || '', args: args || [] }), signal: ctl ? ctl.signal : undefined, cache: 'no-store' })
     .then(function (r) { clearTimeout(to); return r.text(); })
-    .then(function (t) { var j; try { j = JSON.parse(t); } catch (e) { throw offErr('Cannot reach the spreadsheet right now.'); } NET.online = true; if (!j.ok) throw new Error(j.e || 'Something went wrong.'); return j.r; },
-      function () { clearTimeout(to); throw offErr('No Wi-Fi.'); });
+    .then(function (t) { var j; try { j = JSON.parse(t); } catch (e) { NET.why = 'got a web page instead of an answer: ' + String(t).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').slice(0, 80); throw offErr('Cannot reach the spreadsheet right now.'); } NET.online = true; if (!j.ok) throw new Error(j.e || 'Something went wrong.'); return j.r; },
+      function (er) { clearTimeout(to); NET.why = 'request blocked or failed (' + String((er && er.message) || er).slice(0, 60) + ')'; throw offErr('No Wi-Fi.'); });
 }
 function run(fn) { return netCall(fn, Array.prototype.slice.call(arguments, 1)); }
 
@@ -172,7 +172,7 @@ function storeVerifier(name, user, pin) {
 }
 function offlineLogin(name, pin) {
   var ver = lsGet('ws_ver', {}), k = String(name).toLowerCase(), v = ver[k], lock = lsGet('ws_lock', {}), L = lock[k] || { n: 0, until: 0 };
-  if (!v || !REP || !REP.cfg) return Promise.reject(offErr('No Wi-Fi, and this phone has not seen you log in yet. Log in once with Wi-Fi.'));
+  if (!v || !REP || !REP.cfg) return Promise.reject(offErr(navigator.onLine ? 'Wi-Fi is on, but the app cannot reach the spreadsheet. Owner: in Apps Script set the deployment to Execute as Me / Anyone. Detail: ' + (NET.why || 'no answer') : 'No Wi-Fi, and this phone has not seen you log in yet. Log in once with Wi-Fi.'));
   if (L.until > Date.now()) return Promise.reject(new Error('Too many wrong tries. Try again in a few minutes.'));
   return pbkdf(pin, v.salt).then(function (h) {
     if (h !== v.hash) { L.n++; if (L.n >= 5) { L.until = Date.now() + 600000; L.n = 0; } lock[k] = L; lsSet('ws_lock', lock); throw new Error('Wrong username or PIN.'); }
