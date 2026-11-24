@@ -1,3 +1,4 @@
+var BRAND_HEAD = '<div class="logo-big"><img src="logo.svg" alt=""><div class="l1">WashStudio</div><div class="l2">Laundry Shop</div></div>';
 var S = { tok: '', idleAt: 0, af: 'all', audit: null, people: null, date: null, today: null, init: null, tab: 'today', day: null, unpaid: null, form: null, q: '' };
 
 function $(id) { return document.getElementById(id); }
@@ -545,7 +546,7 @@ document.addEventListener('change', function (ev) { if (ev.target.id === 'f_svc'
 function viewClose() {
   var c = S.cash; if (!c) return '';
   var sv = c.saved;
-  return '<div class="receipt" style="margin:0"><div class="r-title">WASHSTUDIO</div><div class="r-sub">END OF DAY CASH REPORT</div><div class="r-sub" style="font-weight:bold">' + esc(longDate(S.date)) + '</div><div class="dashx"></div>' +
+  return '<div class="receipt" style="margin:0">' + BRAND_HEAD + '<div class="r-sub">END OF DAY CASH REPORT</div><div class="r-sub" style="font-weight:bold">' + esc(longDate(S.date)) + '</div><div class="dashx"></div>' +
     '<div class="rc-row"><span>Cash received (Paid)</span><b>' + peso(c.cashIn) + '</b></div>' +
     '<div class="rc-row"><span>Expenses paid</span><b>- ' + peso(c.expenses) + '</b></div>' +
     '<div class="rc-row meta"><span>GCash received (not in the drawer)</span><span>' + peso(c.gcash) + '</span></div>' +
@@ -611,7 +612,7 @@ function showReceipt(r) {
   var meta = [];
   if (r.kilos !== '' && r.kilos != null) meta.push(esc(r.kilos) + ' kg');
   if (r.load !== '' && r.load != null) meta.push(esc(r.load) + ' load' + (Number(r.load) === 1 ? '' : 's'));
-  $('modal').innerHTML = '<div class="receipt"><div class="r-title">WASHSTUDIO</div><div class="r-sub">CLAIM SLIP #' + esc(String(r.id || '').slice(0, 6).toUpperCase()) + '</div><div class="dashx"></div>' +
+  $('modal').innerHTML = '<div class="receipt">' + BRAND_HEAD + '<div class="r-sub">CLAIM SLIP #' + esc(String(r.id || '').slice(0, 6).toUpperCase()) + '</div><div class="dashx"></div>' +
     '<div class="rc-row"><span>Date in</span><span>' + esc(shortDate(r.dateIn)) + '</span></div>' +
     '<div class="rc-row"><span>Customer</span><b>' + esc(r.name) + '</b></div>' +
     (meta.length ? '<div class="rc-row"><span>Laundry</span><span>' + meta.join(' · ') + '</span></div>' : '') +
@@ -632,7 +633,7 @@ function shareReceipt() {
 function showLogin(msg) {
   S.tok = ''; S.init = null; S.day = null; S.unpaid = null; S.cash = null; S.form = null; S.audit = null; S.people = null; S.q = ''; S.uf = 'unpaid';
   closeModal(); ['hdr', 'nav', 'fab'].forEach(function (i) { $(i).classList.add('hidden'); });
-  $('view').innerHTML = '<div class="receipt" style="margin-top:20px"><div class="r-title">WASHSTUDIO</div><div class="r-sub">LOG IN</div><div class="dashx"></div>' +
+  $('view').innerHTML = '<div class="receipt" style="margin-top:20px">' + BRAND_HEAD + '<div class="r-sub">LOG IN</div><div class="dashx"></div>' +
     '<label>Username<input id="l_user" data-t="text" type="text" maxlength="20" autocapitalize="none" autocomplete="off"></label>' +
     '<label>PIN<input class="pinin" id="l_pin" data-t="pin" type="password" inputmode="numeric" autocomplete="off"></label>' +
     '<div class="err" id="l_err">' + esc(msg || '') + '</div><div class="actions"><button class="primary" id="l_go">Log in</button></div></div>';
@@ -642,7 +643,7 @@ function showLogin(msg) {
 }
 function showFirst(name) {
   S.pick = { name: name };
-  $('view').innerHTML = '<div class="receipt" style="margin-top:20px"><div class="r-title">WASHSTUDIO</div><div class="r-sub">' + esc(name.toUpperCase()) + '</div><div class="dashx"></div>' +
+  $('view').innerHTML = '<div class="receipt" style="margin-top:20px">' + BRAND_HEAD + '<div class="r-sub">' + esc(name.toUpperCase()) + '</div><div class="dashx"></div>' +
     '<div class="meta" style="font-size:14px">First time. Type the 6-digit setup code you put in the Staff tab (cell H2), then create your owner PIN.</div><label style="margin-top:8px">Setup code<input id="l_code" data-t="pin" type="password" inputmode="numeric" autocomplete="off"></label><label>New PIN<input class="pinin" id="l_pin" data-t="pin" type="password" inputmode="numeric" autocomplete="off"></label>' +
     '<label>Type it again<input class="pinin" id="l_pin2" data-t="pin" type="password" inputmode="numeric" autocomplete="off"></label><div class="err" id="l_err"></div>' +
     '<div class="actions"><button class="ghost" id="l_back">Back</button><button class="primary" id="l_first">Save PIN</button></div></div>';
